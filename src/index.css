@@ -4,33 +4,33 @@
 
 @layer base {
   :root {
-    --background: 30 50% 97%;
-    --foreground: 20 100% 5%;
+    --background: 240 30% 97%;
+    --foreground: 235 60% 15%;
 
-    --card: 30 50% 97%;
-    --card-foreground: 20 100% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 235 60% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 100% 5%;
+    --popover-foreground: 235 60% 15%;
 
-    --primary: 18 79% 47%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 239 55% 45%;
+    --primary-foreground: 50 100% 95%;
 
-    --secondary: 30 40% 92%;
-    --secondary-foreground: 20 100% 5%;
+    --secondary: 240 25% 92%;
+    --secondary-foreground: 235 60% 15%;
 
-    --muted: 30 20% 90%;
-    --muted-foreground: 25 25% 38%;
+    --muted: 240 15% 90%;
+    --muted-foreground: 235 15% 45%;
 
-    --accent: 37 90% 55%;
-    --accent-foreground: 20 100% 5%;
+    --accent: 48 95% 55%;
+    --accent-foreground: 235 60% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 20% 85%;
-    --input: 30 20% 85%;
-    --ring: 18 79% 47%;
+    --border: 240 15% 87%;
+    --input: 240 15% 87%;
+    --ring: 239 55% 45%;
 
     --radius: 1.25rem;
 
@@ -41,45 +41,46 @@
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 239 55% 45%;
 
     /* Custom tokens */
-    --primary-dark: 18 83% 36%;
-    --kaushi-cream: 30 50% 97%;
-    --kaushi-dark: 20 100% 5%;
-    --kaushi-muted-brown: 25 25% 38%;
-    --kaushi-gold: 37 90% 55%;
+    --primary-dark: 239 60% 35%;
+    --kaushi-blue: 239 55% 45%;
+    --kaushi-dark: 235 60% 15%;
+    --kaushi-muted: 235 15% 45%;
+    --kaushi-gold: 48 95% 55%;
+    --kaushi-light: 240 30% 97%;
 
     /* Admin tokens */
-    --admin-bg: 222 47% 11%;
-    --admin-sidebar: 217 33% 17%;
-    --admin-card: 217 33% 17%;
-    --admin-accent: 24 94% 53%;
+    --admin-bg: 235 45% 12%;
+    --admin-sidebar: 235 40% 18%;
+    --admin-card: 235 40% 18%;
+    --admin-accent: 48 95% 55%;
     --admin-text: 210 40% 98%;
-    --admin-muted: 215 20% 65%;
-    --admin-border: 217 33% 22%;
+    --admin-muted: 235 20% 60%;
+    --admin-border: 235 35% 25%;
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 235 45% 12%;
     --foreground: 210 40% 98%;
-    --card: 217 33% 17%;
+    --card: 235 40% 18%;
     --card-foreground: 210 40% 98%;
-    --popover: 217 33% 17%;
+    --popover: 235 40% 18%;
     --popover-foreground: 210 40% 98%;
-    --primary: 24 94% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
+    --primary: 48 95% 55%;
+    --primary-foreground: 235 60% 15%;
+    --secondary: 235 40% 18%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 22%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 37 90% 55%;
+    --muted: 235 35% 25%;
+    --muted-foreground: 235 20% 60%;
+    --accent: 239 55% 55%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
-    --ring: 24 94% 53%;
+    --border: 235 35% 25%;
+    --input: 235 35% 25%;
+    --ring: 48 95% 55%;
   }
 }
 
