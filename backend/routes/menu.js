@@ -1,9 +1,7 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
-const MenuItem = require('../models/MenuItem');
-const { protect, adminOnly } = require('../middleware/auth');
-
 const router = express.Router();
+const { MenuItem, Category } = require('../models/SupabaseModels');
+const { protect, adminOnly } = require('../middleware/auth');
 
 // @route   GET /api/menu
 // @desc    Get all menu items with optional filtering

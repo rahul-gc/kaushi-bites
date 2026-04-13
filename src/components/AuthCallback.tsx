@@ -1,16 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-
-const supabase = createClient(
-  'https://vonldovtaxdsazzeapdu.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmxkb3Z0YXhkc2F6emVhcGR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjYwMzUsImV4cCI6MjA5MTYwMjAzNX0.X_lQRPPmFosIUJA_7TUI4jMnuoIn6BSPZQeDNX3d3lA'
-);
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const authStore = useAuthStore();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -42,7 +37,7 @@ const AuthCallback = () => {
 
           if (response.ok) {
             localStorage.setItem('token', result.token);
-            // Update auth store state directly
+            // Update auth store state using the store's internal method
             useAuthStore.setState({ user: result.user });
             navigate('/');
           } else {
@@ -59,7 +54,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, setUser]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

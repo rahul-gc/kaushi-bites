@@ -1,15 +1,14 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Category = require('../models/Category');
-const { protect, adminOnly } = require('../middleware/auth');
-
 const router = express.Router();
+const { Category } = require('../models/SupabaseModels');
+const { protect, adminOnly } = require('../middleware/auth');
 
 // @route   GET /api/categories
 // @desc    Get all categories
 router.get('/', async (req, res) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
+    const categories = await Category.findAll();
     res.json(categories);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -21,7 +20,7 @@ router.get('/', async (req, res) => {
 // @desc    Get category by slug
 router.get('/:slug', async (req, res) => {
   try {
-    const category = await Category.findOne({ slug: req.params.slug });
+    const category = await Category.findBySlug(req.params.slug);
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
@@ -33,44 +32,29 @@ router.get('/:slug', async (req, res) => {
 });
 
 // @route   POST /api/categories
-// @desc    Create a new category (Admin only)
+// @desc    Create a new category (admin only)
 router.post('/', protect, adminOnly, [
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('slug').trim().isLength({ min: 2 }).withMessage('Slug must be at least 2 characters'),
-  body('image').isURL().withMessage('Image must be a valid URL'),
+  body('name').trim().notEmpty().withMessage('Category name is required'),
+  body('slug').trim().notEmpty().withMessage('Category slug is required'),
+  body('image').optional().isURL().withMessage('Image must be a valid URL')
 ], async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: errors.array() 
-      });
+      return res.status(400).json({ message: 'Validation errors', errors: errors.array() });
     }
 
     const { name, slug, image } = req.body;
 
     // Check if category already exists
-    const existingCategory = await Category.findOne({ slug });
+    const existingCategory = await Category.findBySlug(slug);
     if (existingCategory) {
-      return res.status(400).json({ message: 'Category already exists with this slug' });
+      return res.status(400).json({ message: 'Category with this slug already exists' });
     }
 
-    // Create new category
-    const category = new Category({
-      id: slug,
-      name,
-      slug,
-      image
-    });
+    const category = await Category.create({ name, slug, image });
 
-    await category.save();
-
-    res.status(201).json({
-      message: 'Category created successfully',
-      category
-    });
+    res.status(201).json(category);
   } catch (error) {
     console.error('Create category error:', error);
     res.status(500).json({ message: 'Server error while creating category' });
@@ -81,35 +65,22 @@ router.post('/', protect, adminOnly, [
 // @desc    Update a category (Admin only)
 router.put('/:slug', protect, adminOnly, [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('image').optional().isURL().withMessage('Image must be a valid URL'),
+  body('image').optional().isURL().withMessage('Image must be a valid URL')
 ], async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: errors.array() 
-      });
+      return res.status(400).json({ message: 'Validation errors', errors: errors.array() });
     }
 
     const { name, image } = req.body;
-    const category = await Category.findOne({ slug: req.params.slug });
+    const category = await Category.updateBySlug(req.params.slug, { name, image });
 
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // Update fields
-    if (name) category.name = name;
-    if (image) category.image = image;
-
-    await category.save();
-
-    res.json({
-      message: 'Category updated successfully',
-      category
-    });
+    res.json(category);
   } catch (error) {
     console.error('Update category error:', error);
     res.status(500).json({ message: 'Server error while updating category' });
@@ -120,26 +91,11 @@ router.put('/:slug', protect, adminOnly, [
 // @desc    Delete a category (Admin only)
 router.delete('/:slug', protect, adminOnly, async (req, res) => {
   try {
-    const category = await Category.findOne({ slug: req.params.slug });
-
-    if (!category) {
+    const success = await Category.deleteBySlug(req.params.slug);
+    if (!success) {
       return res.status(404).json({ message: 'Category not found' });
     }
-
-    // Check if category has menu items
-    const MenuItem = require('../models/MenuItem');
-    const menuItemsCount = await MenuItem.countDocuments({ category: category.slug });
-    if (menuItemsCount > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete category. It has menu items associated with it.' 
-      });
-    }
-
-    await Category.deleteOne({ slug: req.params.slug });
-
-    res.json({
-      message: 'Category deleted successfully'
-    });
+    res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     console.error('Delete category error:', error);
     res.status(500).json({ message: 'Server error while deleting category' });

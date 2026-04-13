@@ -1,6 +1,6 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
-const MenuItem = require('../models/MenuItem');
+const router = express.Router();
+const { MenuItem, Order } = require('../models/SupabaseModels');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
