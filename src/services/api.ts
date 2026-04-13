@@ -1,5 +1,5 @@
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
+  ? 'https://kaushi-bites-backend.onrender.com/api' 
   : 'http://localhost:5000/api';
 
 class ApiService {
