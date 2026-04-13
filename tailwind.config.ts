@@ -63,10 +63,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         kaushi: {
-          cream: "hsl(var(--kaushi-cream))",
+          blue: "hsl(var(--kaushi-blue))",
           dark: "hsl(var(--kaushi-dark))",
-          muted: "hsl(var(--kaushi-muted-brown))",
+          muted: "hsl(var(--kaushi-muted))",
           gold: "hsl(var(--kaushi-gold))",
+          light: "hsl(var(--kaushi-light))",
         },
         admin: {
           bg: "hsl(var(--admin-bg))",
