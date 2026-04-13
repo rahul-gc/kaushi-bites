@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Order, OrderStatus } from '@/types/order';
 import { MenuItem } from '@/types/menu';
-import { menuItems as seedItems } from '@/data/menuData';
+import { apiService } from '@/services/api';
 
 interface AdminStore {
   isAdmin: boolean;
@@ -10,15 +10,20 @@ interface AdminStore {
   activeTab: string;
   menuItems: MenuItem[];
   orders: Order[];
+  isLoading: boolean;
+  error: string | null;
   loginAdmin: (username: string, password: string) => boolean;
   logoutAdmin: () => void;
   setAdminLoginOpen: (open: boolean) => void;
   setActiveTab: (tab: string) => void;
-  addMenuItem: (item: MenuItem) => void;
-  updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
-  deleteMenuItem: (id: string) => void;
+  fetchMenuItems: () => Promise<void>;
+  fetchOrders: () => Promise<void>;
+  addMenuItem: (item: MenuItem) => Promise<void>;
+  updateMenuItem: (id: string, item: Partial<MenuItem>) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
   addOrder: (order: Order) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAdminStore = create<AdminStore>()(
@@ -27,30 +32,11 @@ export const useAdminStore = create<AdminStore>()(
       isAdmin: false,
       isAdminLoginOpen: false,
       activeTab: 'overview',
-      menuItems: seedItems,
-      orders: [
-        {
-          id: '1', orderNumber: '#1001', customerName: 'Ram Bahadur', customerEmail: 'ram@email.com',
-          items: [{ menuItemId: '1', name: 'Steam Momo', price: 180, quantity: 2, subtotal: 360 }],
-          total: 360, status: 'confirmed', address: 'Ward 3, Baglung Bazaar', phone: '9841234567',
-          paymentMethod: 'cod', createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2', orderNumber: '#1002', customerName: 'Sita Sharma', customerEmail: 'sita@email.com',
-          items: [
-            { menuItemId: '5', name: 'Dal Bhat Tarkari', price: 250, quantity: 1, subtotal: 250 },
-            { menuItemId: '8', name: 'Chicken Curry', price: 300, quantity: 1, subtotal: 300 },
-          ],
-          total: 550, status: 'preparing', address: 'Ward 1, near Kalika Temple', phone: '9856789012',
-          paymentMethod: 'esewa', createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '3', orderNumber: '#1003', customerName: 'Hari Thapa', customerEmail: 'hari@email.com',
-          items: [{ menuItemId: '6', name: 'Chicken Biryani', price: 350, quantity: 3, subtotal: 1050 }],
-          total: 1050, status: 'delivered', address: 'Ward 5, Bus Park area', phone: '9867654321',
-          paymentMethod: 'cod', createdAt: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ],
+      menuItems: [],
+      orders: [],
+      isLoading: false,
+      error: null,
+      
       loginAdmin: (username, password) => {
         if (username === 'admin' && password === 'kaushi@2025') {
           set({ isAdmin: true, isAdminLoginOpen: false });
@@ -58,18 +44,78 @@ export const useAdminStore = create<AdminStore>()(
         }
         return false;
       },
+      
       logoutAdmin: () => set({ isAdmin: false, activeTab: 'overview' }),
       setAdminLoginOpen: (open) => set({ isAdminLoginOpen: open }),
       setActiveTab: (tab) => set({ activeTab: tab }),
-      addMenuItem: (item) => set({ menuItems: [...get().menuItems, item] }),
-      updateMenuItem: (id, updates) => set({
-        menuItems: get().menuItems.map(i => i.id === id ? { ...i, ...updates } : i),
-      }),
-      deleteMenuItem: (id) => set({ menuItems: get().menuItems.filter(i => i.id !== id) }),
+      
+      fetchMenuItems: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiService.getMenuItems();
+          set({ menuItems: data, isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to fetch menu items', isLoading: false });
+        }
+      },
+      
+      fetchOrders: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiService.getOrders();
+          set({ orders: data, isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to fetch orders', isLoading: false });
+        }
+      },
+      
+      addMenuItem: async (item) => {
+        set({ isLoading: true, error: null });
+        try {
+          await apiService.createMenuItem(item);
+          await get().fetchMenuItems();
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to add menu item', isLoading: false });
+        }
+      },
+      
+      updateMenuItem: async (id, updates) => {
+        set({ isLoading: true, error: null });
+        try {
+          await apiService.updateMenuItem(id, updates);
+          await get().fetchMenuItems();
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to update menu item', isLoading: false });
+        }
+      },
+      
+      deleteMenuItem: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+          await apiService.deleteMenuItem(id);
+          await get().fetchMenuItems();
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to delete menu item', isLoading: false });
+        }
+      },
+      
       addOrder: (order) => set({ orders: [order, ...get().orders] }),
-      updateOrderStatus: (id, status) => set({
-        orders: get().orders.map(o => o.id === id ? { ...o, status } : o),
-      }),
+      
+      updateOrderStatus: async (id, status) => {
+        set({ isLoading: true, error: null });
+        try {
+          await apiService.updateOrderStatus(id, status);
+          await get().fetchOrders();
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to update order status', isLoading: false });
+        }
+      },
+      
+      clearError: () => set({ error: null }),
     }),
     { name: 'kaushi-admin' }
   )

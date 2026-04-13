@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAdminStore } from '@/store/adminStore';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import OverviewTab from '@/components/admin/OverviewTab';
@@ -7,7 +8,14 @@ import CustomersTab from '@/components/admin/CustomersTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 
 const AdminDashboard = () => {
-  const { activeTab } = useAdminStore();
+  const { activeTab, isAdmin, fetchMenuItems, fetchOrders } = useAdminStore();
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchMenuItems();
+      fetchOrders();
+    }
+  }, [isAdmin, fetchMenuItems, fetchOrders]);
 
   const renderTab = () => {
     switch (activeTab) {

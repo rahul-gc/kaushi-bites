@@ -215,6 +215,26 @@ class ApiService {
     return this.request(`/admin/menu-items${query ? `?${query}` : ''}`);
   }
 
+  async createMenuItem(menuItemData: any) {
+    return this.request('/menu', {
+      method: 'POST',
+      body: JSON.stringify(menuItemData),
+    });
+  }
+
+  async updateMenuItem(id: string, menuItemData: any) {
+    return this.request(`/menu/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(menuItemData),
+    });
+  }
+
+  async deleteMenuItem(id: string) {
+    return this.request(`/menu/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getAdminUsers(params?: { page?: number; limit?: number }) {
     const searchParams = new URLSearchParams();
     if (params?.page) {
