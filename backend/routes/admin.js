@@ -1,9 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Order = require('../models/Order');
-const MenuItem = require('../models/MenuItem');
-const Category = require('../models/Category');
-const User = require('../models/User');
+const { Order, MenuItem, Category, User } = require('../models/SupabaseModels');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,13 +24,13 @@ router.post('/login', [
     const { username, password } = req.body;
 
     // Find admin user
-    const adminUser = await User.findOne({ email: username, isAdmin: true });
-    if (!adminUser) {
+    const adminUser = await User.findByEmail(username);
+    if (!adminUser || !adminUser.is_admin) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isPasswordValid = await adminUser.comparePassword(password);
+    const isPasswordValid = await User.comparePassword(password, adminUser.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -65,40 +62,29 @@ router.post('/login', [
 router.get('/overview', protect, adminOnly, async (req, res) => {
   try {
     // Get basic stats
-    const totalOrders = await Order.countDocuments();
-    const totalMenuItems = await MenuItem.countDocuments();
-    const totalCategories = await Category.countDocuments();
-    const totalUsers = await User.countDocuments({ isAdmin: false });
+    const totalOrders = await Order.count();
+    const totalMenuItems = await MenuItem.count();
+    const totalCategories = await Category.count();
+    const totalUsers = await User.count();
 
-    // Get orders by status
-    const ordersByStatus = await Order.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    // Get all orders for manual aggregation
+    const allOrders = await Order.findAll();
+    
+    // Get orders by status manually
+    const ordersByStatus = allOrders.reduce((acc, order) => {
+      acc[order.status] = (acc[order.status] || 0) + 1;
+      return acc;
+    }, {});
 
     // Get recent orders
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const recentOrders = allOrders
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
 
-    // Get total revenue
-    const totalRevenue = await Order.aggregate([
-      {
-        $match: {
-          status: { $ne: 'cancelled' }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$total' }
-        }
-      }
-    ]);
+    // Get total revenue (excluding cancelled orders)
+    const totalRevenue = allOrders
+      .filter(order => order.status !== 'cancelled')
+      .reduce((sum, order) => sum + order.total, 0);
 
     // Get today's orders
     const today = new Date();
@@ -106,9 +92,10 @@ router.get('/overview', protect, adminOnly, async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const todayOrders = await Order.countDocuments({
-      createdAt: { $gte: today, $lt: tomorrow }
-    });
+    const todayOrders = allOrders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return orderDate >= today && orderDate < tomorrow;
+    }).length;
 
     res.json({
       stats: {
@@ -117,12 +104,9 @@ router.get('/overview', protect, adminOnly, async (req, res) => {
         totalCategories,
         totalUsers,
         todayOrders,
-        totalRevenue: totalRevenue[0]?.total || 0
+        totalRevenue
       },
-      ordersByStatus: ordersByStatus.reduce((acc, item) => {
-        acc[item._id] = item.count;
-        return acc;
-      }, {}),
+      ordersByStatus,
       recentOrders
     });
   } catch (error) {
@@ -136,18 +120,22 @@ router.get('/overview', protect, adminOnly, async (req, res) => {
 router.get('/orders', protect, adminOnly, async (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
-    let filter = {};
-
+    
+    let allOrders = await Order.findAll();
+    
+    // Filter by status if provided
     if (status) {
-      filter.status = status;
+      allOrders = allOrders.filter(order => order.status === status);
     }
 
-    const orders = await Order.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    // Sort by created_at descending
+    allOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    const total = await Order.countDocuments(filter);
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const orders = allOrders.slice(startIndex, endIndex);
+    const total = allOrders.length;
 
     res.json({
       orders,
@@ -181,14 +169,11 @@ router.put('/orders/:id/status', protect, adminOnly, [
     }
 
     const { status } = req.body;
-    const order = await Order.findOne({ id: req.params.id });
+    const order = await Order.updateStatus(req.params.id, status);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-
-    order.status = status;
-    await order.save();
 
     res.json({
       message: 'Order status updated successfully',
@@ -205,21 +190,28 @@ router.put('/orders/:id/status', protect, adminOnly, [
 router.get('/menu-items', protect, adminOnly, async (req, res) => {
   try {
     const { page = 1, limit = 20, category, available } = req.query;
-    let filter = {};
-
+    
+    let allMenuItems = await MenuItem.findAll();
+    
+    // Filter by category if provided
     if (category && category !== 'all') {
-      filter.category = category;
+      allMenuItems = allMenuItems.filter(item => item.category === category);
     }
+    
+    // Filter by availability if provided
     if (available !== undefined) {
-      filter.isAvailable = available === 'true';
+      const isAvailable = available === 'true';
+      allMenuItems = allMenuItems.filter(item => item.is_available === isAvailable);
     }
 
-    const menuItems = await MenuItem.find(filter)
-      .sort({ name: 1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    // Sort by name
+    allMenuItems.sort((a, b) => a.name.localeCompare(b.name));
 
-    const total = await MenuItem.countDocuments(filter);
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const menuItems = allMenuItems.slice(startIndex, endIndex);
+    const total = allMenuItems.length;
 
     res.json({
       menuItems,
@@ -242,16 +234,25 @@ router.get('/users', protect, adminOnly, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
 
-    const users = await User.find({ isAdmin: false })
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const allUsers = await User.findAll();
+    
+    // Filter out admin users
+    const nonAdminUsers = allUsers.filter(user => !user.is_admin);
+    
+    // Sort by created_at descending
+    nonAdminUsers.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    const total = await User.countDocuments({ isAdmin: false });
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const users = nonAdminUsers.slice(startIndex, endIndex);
+    const total = nonAdminUsers.length;
+
+    // Remove password from user objects
+    const usersWithoutPassword = users.map(({ password, ...user }) => user);
 
     res.json({
-      users,
+      users: usersWithoutPassword,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

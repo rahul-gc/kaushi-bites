@@ -1,19 +1,26 @@
-import { useAuthStore } from '@/store/authStore';
 import { useAdminStore } from '@/store/adminStore';
 
 const CustomersTab = () => {
-  const { registeredUsers } = useAuthStore();
-  const { orders } = useAdminStore();
+  const { orders = [] } = useAdminStore();
 
-  const customers = registeredUsers.map(u => {
-    const userOrders = orders.filter(o => o.customerEmail === u.email);
-    return {
-      name: u.name,
-      email: u.email,
-      orders: userOrders.length,
-      totalSpent: userOrders.reduce((s, o) => s + o.total, 0),
-    };
+  // Extract unique customers from orders
+  const customersMap = new Map();
+  orders.forEach(order => {
+    const email = order.customerEmail;
+    if (!customersMap.has(email)) {
+      customersMap.set(email, {
+        name: order.customerName,
+        email: email,
+        orders: 0,
+        totalSpent: 0,
+      });
+    }
+    const customer = customersMap.get(email);
+    customer.orders += 1;
+    customer.totalSpent += order.total;
   });
+
+  const customers = Array.from(customersMap.values());
 
   return (
     <div>
