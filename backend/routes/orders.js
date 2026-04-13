@@ -9,8 +9,7 @@ const router = express.Router();
 // @desc    Get user's orders
 router.get('/', protect, async (req, res) => {
   try {
-    const orders = await Order.find({ customerEmail: req.user.email })
-      .sort({ createdAt: -1 });
+    const orders = await Order.findByCustomerEmail(req.user.email);
     res.json(orders);
   } catch (error) {
     console.error('Get orders error:', error);
@@ -22,13 +21,15 @@ router.get('/', protect, async (req, res) => {
 // @desc    Get order by ID
 router.get('/:id', protect, async (req, res) => {
   try {
-    const order = await Order.findOne({ 
-      id: req.params.id,
-      customerEmail: req.user.email 
-    });
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if the order belongs to the authenticated user
+    if (order.customer_email !== req.user.email) {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
     }
 
     res.json(order);
@@ -65,12 +66,9 @@ router.post('/', protect, [
     const orderItems = [];
 
     for (const item of items) {
-      const menuItem = await MenuItem.findOne({ 
-        id: item.menuItemId, 
-        isAvailable: true 
-      });
+      const menuItem = await MenuItem.findById(item.menuItemId);
 
-      if (!menuItem) {
+      if (!menuItem || !menuItem.is_available) {
         return res.status(400).json({ 
           message: `Menu item ${item.menuItemId} not found or not available` 
         });
@@ -89,7 +87,7 @@ router.post('/', protect, [
     }
 
     // Create new order
-    const order = new Order({
+    const order = await Order.create({
       customerName: req.user.name,
       customerEmail: req.user.email,
       items: orderItems,
@@ -100,8 +98,6 @@ router.post('/', protect, [
       notes,
       userId: req.user.id
     });
-
-    await order.save();
 
     // Clear cart after order is placed
     if (req.session.cart) {
@@ -122,13 +118,15 @@ router.post('/', protect, [
 // @desc    Cancel an order (only if pending)
 router.put('/:id/cancel', protect, async (req, res) => {
   try {
-    const order = await Order.findOne({ 
-      id: req.params.id,
-      customerEmail: req.user.email 
-    });
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if the order belongs to the authenticated user
+    if (order.customer_email !== req.user.email) {
+      return res.status(403).json({ message: 'Not authorized to cancel this order' });
     }
 
     if (order.status !== 'pending') {
@@ -137,12 +135,11 @@ router.put('/:id/cancel', protect, async (req, res) => {
       });
     }
 
-    order.status = 'cancelled';
-    await order.save();
+    const updatedOrder = await Order.updateStatus(req.params.id, 'cancelled');
 
     res.json({
       message: 'Order cancelled successfully',
-      order
+      order: updatedOrder
     });
   } catch (error) {
     console.error('Cancel order error:', error);

@@ -1,6 +1,6 @@
 const express = require('express');
-const router = express.Router();
-const { MenuItem, Order } = require('../models/SupabaseModels');
+const { body, validationResult } = require('express-validator');
+const { MenuItem } = require('../models/SupabaseModels');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -38,8 +38,8 @@ router.post('/add', protect, [
     const { menuItemId, quantity = 1 } = req.body;
 
     // Check if menu item exists and is available
-    const menuItem = await MenuItem.findOne({ id: menuItemId, isAvailable: true });
-    if (!menuItem) {
+    const menuItem = await MenuItem.findById(menuItemId);
+    if (!menuItem || !menuItem.is_available) {
       return res.status(404).json({ message: 'Menu item not found or not available' });
     }
 
@@ -65,8 +65,8 @@ router.post('/add', protect, [
         image: menuItem.image,
         rating: menuItem.rating,
         badge: menuItem.badge,
-        isAvailable: menuItem.isAvailable,
-        isFeatured: menuItem.isFeatured,
+        isAvailable: menuItem.is_available,
+        isFeatured: menuItem.is_featured,
         quantity
       });
     }

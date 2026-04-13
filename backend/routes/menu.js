@@ -1,4 +1,5 @@
 const express = require('express');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const { MenuItem, Category } = require('../models/SupabaseModels');
 const { protect, adminOnly } = require('../middleware/auth');
@@ -8,19 +9,13 @@ const { protect, adminOnly } = require('../middleware/auth');
 router.get('/', async (req, res) => {
   try {
     const { category, featured, available } = req.query;
-    let filter = {};
-
-    if (category && category !== 'all') {
-      filter.category = category;
-    }
-    if (featured === 'true') {
-      filter.isFeatured = true;
-    }
-    if (available === 'true') {
-      filter.isAvailable = true;
-    }
-
-    const menuItems = await MenuItem.find(filter).sort({ name: 1 });
+    
+    const menuItems = await MenuItem.findAll({
+      category: category && category !== 'all' ? category : undefined,
+      featured: featured === 'true',
+      available: available === 'true'
+    });
+    
     res.json(menuItems);
   } catch (error) {
     console.error('Get menu items error:', error);
@@ -32,10 +27,10 @@ router.get('/', async (req, res) => {
 // @desc    Get featured menu items
 router.get('/featured', async (req, res) => {
   try {
-    const featuredItems = await MenuItem.find({ 
-      isFeatured: true, 
-      isAvailable: true 
-    }).sort({ name: 1 });
+    const featuredItems = await MenuItem.findAll({
+      featured: true,
+      available: true
+    });
     res.json(featuredItems);
   } catch (error) {
     console.error('Get featured items error:', error);
@@ -48,10 +43,10 @@ router.get('/featured', async (req, res) => {
 router.get('/category/:category', async (req, res) => {
   try {
     const { category } = req.params;
-    const menuItems = await MenuItem.find({ 
-      category, 
-      isAvailable: true 
-    }).sort({ name: 1 });
+    const menuItems = await MenuItem.findAll({
+      category,
+      available: true
+    });
     res.json(menuItems);
   } catch (error) {
     console.error('Get menu items by category error:', error);
@@ -63,7 +58,7 @@ router.get('/category/:category', async (req, res) => {
 // @desc    Get menu item by ID
 router.get('/:id', async (req, res) => {
   try {
-    const menuItem = await MenuItem.findOne({ id: req.params.id });
+    const menuItem = await MenuItem.findById(req.params.id);
     if (!menuItem) {
       return res.status(404).json({ message: 'Menu item not found' });
     }
@@ -97,14 +92,13 @@ router.post('/', protect, adminOnly, [
     const { name, description, price, category, image, rating, badge, isAvailable, isFeatured } = req.body;
 
     // Check if category exists
-    const Category = require('../models/Category');
-    const categoryExists = await Category.findOne({ slug: category });
+    const categoryExists = await Category.findBySlug(category);
     if (!categoryExists) {
       return res.status(400).json({ message: 'Category does not exist' });
     }
 
     // Create new menu item
-    const menuItem = new MenuItem({
+    const menuItem = await MenuItem.create({
       name,
       description,
       price,
@@ -115,8 +109,6 @@ router.post('/', protect, adminOnly, [
       isAvailable: isAvailable !== undefined ? isAvailable : true,
       isFeatured: isFeatured !== undefined ? isFeatured : false
     });
-
-    await menuItem.save();
 
     res.status(201).json({
       message: 'Menu item created successfully',
@@ -149,33 +141,31 @@ router.put('/:id', protect, adminOnly, [
     }
 
     const { name, description, price, category, image, rating, badge, isAvailable, isFeatured } = req.body;
-    const menuItem = await MenuItem.findOne({ id: req.params.id });
+    
+    // If category is being updated, check if it exists
+    if (category) {
+      const categoryExists = await Category.findBySlug(category);
+      if (!categoryExists) {
+        return res.status(400).json({ message: 'Category does not exist' });
+      }
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (description) updateData.description = description;
+    if (price !== undefined) updateData.price = price;
+    if (category) updateData.category = category;
+    if (image) updateData.image = image;
+    if (rating !== undefined) updateData.rating = rating;
+    if (badge !== undefined) updateData.badge = badge;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+
+    const menuItem = await MenuItem.updateById(req.params.id, updateData);
 
     if (!menuItem) {
       return res.status(404).json({ message: 'Menu item not found' });
     }
-
-    // If category is being updated, check if it exists
-    if (category && category !== menuItem.category) {
-      const Category = require('../models/Category');
-      const categoryExists = await Category.findOne({ slug: category });
-      if (!categoryExists) {
-        return res.status(400).json({ message: 'Category does not exist' });
-      }
-      menuItem.category = category;
-    }
-
-    // Update fields
-    if (name) menuItem.name = name;
-    if (description) menuItem.description = description;
-    if (price !== undefined) menuItem.price = price;
-    if (image) menuItem.image = image;
-    if (rating !== undefined) menuItem.rating = rating;
-    if (badge !== undefined) menuItem.badge = badge;
-    if (isAvailable !== undefined) menuItem.isAvailable = isAvailable;
-    if (isFeatured !== undefined) menuItem.isFeatured = isFeatured;
-
-    await menuItem.save();
 
     res.json({
       message: 'Menu item updated successfully',
@@ -191,13 +181,11 @@ router.put('/:id', protect, adminOnly, [
 // @desc    Delete a menu item (Admin only)
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const menuItem = await MenuItem.findOne({ id: req.params.id });
+    const success = await MenuItem.deleteById(req.params.id);
 
-    if (!menuItem) {
+    if (!success) {
       return res.status(404).json({ message: 'Menu item not found' });
     }
-
-    await MenuItem.deleteOne({ id: req.params.id });
 
     res.json({
       message: 'Menu item deleted successfully'
