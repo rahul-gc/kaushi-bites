@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import CartPanel from "@/components/CartPanel";
 import LoginModal from "@/components/LoginModal";
 import AdminLoginModal from "@/components/AdminLoginModal";
+import AuthCallback from "@/components/AuthCallback";
 import Index from "./pages/Index";
 import MenuPage from "./pages/Menu";
 import CheckoutPage from "./pages/Checkout";
@@ -35,6 +36,7 @@ const AppContent = () => {
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

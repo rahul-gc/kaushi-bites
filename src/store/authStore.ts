@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/types/user';
 import { apiService } from '@/services/api';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client for auth
+const supabase = createClient(
+  'https://vonldovtaxdsazzeapdu.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmxkb3Z0YXhkc2F6emVhcGR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMjYwMzUsImV4cCI6MjA5MTYwMjAzNX0.X_lQRPPmFosIUJA_7TUI4jMnuoIn6BSPZQeDNX3d3lA'
+);
 
 interface AuthStore {
   user: User | null;
@@ -10,6 +17,7 @@ interface AuthStore {
   error: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   setLoginOpen: (open: boolean) => void;
   updateProfile: (userData: { name?: string; phone?: string }) => Promise<boolean>;
@@ -78,6 +86,30 @@ export const useAuthStore = create<AuthStore>()(
           set({
             isLoading: false,
             error: error instanceof Error ? error.message : 'Registration failed',
+          });
+          return false;
+        }
+      },
+
+      loginWithGoogle: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: `${window.location.origin}/auth/callback`
+            }
+          });
+
+          if (error) throw error;
+
+          // The user will be redirected to Google OAuth
+          // After successful auth, they'll be redirected back with session
+          return true;
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Google login failed',
           });
           return false;
         }

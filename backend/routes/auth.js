@@ -186,4 +186,52 @@ router.put('/profile', protect, [
   }
 });
 
+// @route   POST /api/auth/google-login
+// @desc    Handle Google OAuth login
+router.post('/google-login', async (req, res) => {
+  try {
+    const { email, name, avatar_url } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Check if user exists
+    let user = await User.findByEmail(email);
+
+    if (!user) {
+      // Create new user from Google OAuth
+      const newUser = await User.create({
+        id: email,
+        name: name || email.split('@')[0],
+        email,
+        password: 'google-oauth-user', // Placeholder password
+        phone: null
+      });
+      user = newUser;
+    }
+
+    // Generate JWT token
+    const token = generateToken(user.id);
+
+    // Return user profile without password
+    const userProfile = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      createdAt: user.created_at
+    };
+
+    res.json({
+      message: 'Google login successful',
+      token,
+      user: userProfile
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ message: 'Server error during Google login' });
+  }
+});
+
 module.exports = router;
