@@ -1,15 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/types/user';
+import { apiService } from '@/services/api';
 
 interface AuthStore {
   user: User | null;
   isLoginOpen: boolean;
-  login: (email: string, password: string, name?: string) => boolean;
-  register: (name: string, email: string, password: string) => boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string, phone?: string) => Promise<boolean>;
   logout: () => void;
   setLoginOpen: (open: boolean) => void;
-  registeredUsers: { email: string; password: string; name: string }[];
+  updateProfile: (userData: { name?: string; phone?: string }) => Promise<boolean>;
+  clearError: () => void;
+  initializeAuth: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -17,33 +22,97 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       user: null,
       isLoginOpen: false,
-      registeredUsers: [],
-      login: (email, password) => {
-        const users = get().registeredUsers;
-        const found = users.find(u => u.email === email && u.password === password);
-        if (found) {
+      isLoading: false,
+      error: null,
+      
+      initializeAuth: () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Verify token is still valid by getting profile
+          apiService.getProfile()
+            .then(data => {
+              set({ user: data.user, error: null });
+            })
+            .catch(() => {
+              // Token is invalid, clear it
+              localStorage.removeItem('token');
+              set({ user: null, error: null });
+            });
+        }
+      },
+
+      login: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiService.login({ email, password });
+          localStorage.setItem('token', data.token);
           set({
-            user: { id: email, name: found.name, email, createdAt: new Date().toISOString() },
+            user: data.user,
             isLoginOpen: false,
+            isLoading: false,
+            error: null,
           });
           return true;
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Login failed',
+          });
+          return false;
         }
-        return false;
       },
-      register: (name, email, password) => {
-        const users = get().registeredUsers;
-        if (users.find(u => u.email === email)) return false;
-        const newUsers = [...users, { email, password, name }];
-        set({
-          registeredUsers: newUsers,
-          user: { id: email, name, email, createdAt: new Date().toISOString() },
-          isLoginOpen: false,
-        });
-        return true;
+
+      register: async (name, email, password, phone) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiService.register({ name, email, password, phone });
+          localStorage.setItem('token', data.token);
+          set({
+            user: data.user,
+            isLoginOpen: false,
+            isLoading: false,
+            error: null,
+          });
+          return true;
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Registration failed',
+          });
+          return false;
+        }
       },
-      logout: () => set({ user: null }),
-      setLoginOpen: (open) => set({ isLoginOpen: open }),
+
+      logout: () => {
+        localStorage.removeItem('token');
+        set({ user: null, error: null });
+      },
+
+      updateProfile: async (userData) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await apiService.updateProfile(userData);
+          set({
+            user: data.user,
+            isLoading: false,
+            error: null,
+          });
+          return true;
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Profile update failed',
+          });
+          return false;
+        }
+      },
+
+      setLoginOpen: (open) => set({ isLoginOpen: open, error: null }),
+      clearError: () => set({ error: null }),
     }),
-    { name: 'kaushi-auth' }
+    { 
+      name: 'kaushi-auth',
+      partialize: (state) => ({ user: state.user })
+    }
   )
 );
