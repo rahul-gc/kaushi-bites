@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { ShoppingCart, Phone, User, LogOut, Menu, X } from 'lucide-react';
+import kaushiLogo from '@/assets/kaushi-logo.png';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useAdminStore } from '@/store/adminStore';
@@ -40,9 +41,8 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
         <button onClick={handleLogoClick} className="flex items-center gap-2 select-none cursor-pointer">
-          <span className="text-2xl">🍜</span>
+          <img src={kaushiLogo} alt="Kaushi Restaurant" className="h-10 w-10 rounded-full object-cover" />
           <span className="font-display text-xl font-bold text-primary">Kaushi</span>
-          <span className="font-display text-sm text-muted-foreground hidden sm:inline">Restaurant</span>
         </button>
 
         {/* Desktop Nav */}

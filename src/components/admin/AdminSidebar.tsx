@@ -1,5 +1,6 @@
 import { BarChart3, ClipboardList, UtensilsCrossed, Users, Settings, LogOut } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
+import kaushiLogo from '@/assets/kaushi-logo.png';
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -15,7 +16,10 @@ const AdminSidebar = () => {
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-60 bg-admin-sidebar border-r border-admin-border flex-col hidden md:flex z-50">
       <div className="p-6 border-b border-admin-border">
-        <h2 className="font-display text-lg font-bold text-admin-text">🍜 Kaushi</h2>
+        <div className="flex items-center gap-2">
+          <img src={kaushiLogo} alt="Kaushi" className="h-8 w-8 rounded-full object-cover" />
+          <h2 className="font-display text-lg font-bold text-admin-text">Kaushi</h2>
+        </div>
         <p className="font-body text-xs text-admin-accent">Admin Dashboard</p>
       </div>
 
