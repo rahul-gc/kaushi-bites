@@ -27,8 +27,8 @@ app.use('/api/', limiter);
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-frontend-domain.com'] 
-    : ['http://localhost:8080', 'http://localhost:3000'],
+    ? ['https://kaushi-bites.vercel.app', 'https://kaushi-bites-frontend.vercel.app'] 
+    : ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 
