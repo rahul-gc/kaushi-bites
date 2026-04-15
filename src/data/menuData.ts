@@ -72,3 +72,4 @@ export const menuItems: MenuItem[] = [
     category: 'drinks', image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&h=400&fit=crop', rating: 4.3, isAvailable: true, isFeatured: false,
   },
 ];
+
