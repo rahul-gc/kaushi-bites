@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, User, X } from 'lucide-react';
+import { Lock, User, X, Loader2 } from 'lucide-react';
 import { useAdminStore } from '@/store/adminStore';
 
 const AdminLoginModal = () => {
-  const { isAdminLoginOpen, setAdminLoginOpen, loginAdmin } = useAdminStore();
+  const { isAdminLoginOpen, setAdminLoginOpen, loginAdmin, isLoading, error: storeError } = useAdminStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const ok = loginAdmin(username, password);
+    const ok = await loginAdmin(username, password);
     if (!ok) {
-      setError('Invalid credentials.');
+      setError(storeError || 'Invalid credentials.');
       setPassword('');
     }
   };
@@ -47,8 +47,8 @@ const AdminLoginModal = () => {
                   <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Password" className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-admin-border bg-admin-bg text-admin-text font-body text-sm focus:ring-2 focus:ring-admin-accent outline-none placeholder:text-admin-muted" required />
                 </div>
                 {error && <p className="font-body text-sm text-red-400">{error}</p>}
-                <button type="submit" className="w-full py-3 rounded-full bg-admin-accent text-white font-body font-semibold hover:brightness-110 transition">
-                  Enter Dashboard
+                <button type="submit" disabled={isLoading} className="w-full py-3 rounded-full bg-admin-accent text-white font-body font-semibold hover:brightness-110 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enter Dashboard'}
                 </button>
                 <button type="button" onClick={() => setAdminLoginOpen(false)} className="w-full py-2 font-body text-sm text-admin-muted hover:text-admin-text transition-colors">
                   Cancel

@@ -12,7 +12,7 @@ interface AdminStore {
   orders: Order[];
   isLoading: boolean;
   error: string | null;
-  loginAdmin: (username: string, password: string) => boolean;
+  loginAdmin: (username: string, password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   setAdminLoginOpen: (open: boolean) => void;
   setActiveTab: (tab: string) => void;
@@ -37,15 +37,35 @@ export const useAdminStore = create<AdminStore>()(
       isLoading: false,
       error: null,
       
-      loginAdmin: (username, password) => {
-        if (username === 'admin' && password === 'kaushi@2025') {
-          set({ isAdmin: true, isAdminLoginOpen: false });
-          return true;
+      loginAdmin: async (username, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://kaushi-bites-backend.onrender.com/api' : 'http://localhost:5000/api'}/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('adminId', data.user.id);
+            set({ isAdmin: true, isAdminLoginOpen: false, isLoading: false });
+            return true;
+          } else {
+            set({ error: data.message || 'Login failed', isLoading: false });
+            return false;
+          }
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Login failed', isLoading: false });
+          return false;
         }
-        return false;
       },
       
-      logoutAdmin: () => set({ isAdmin: false, activeTab: 'overview' }),
+      logoutAdmin: () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminId');
+        set({ isAdmin: false, activeTab: 'overview' });
+      },
       setAdminLoginOpen: (open) => set({ isAdminLoginOpen: open }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       
