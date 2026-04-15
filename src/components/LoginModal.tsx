@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, UserIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import kaushiLogo from '@/assets/kaushi-logo.png';
 import { useToast } from '@/hooks/use-toast';
 
 const LoginModal = () => {
@@ -52,15 +53,16 @@ const LoginModal = () => {
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
           >
             <div className="w-full max-w-md bg-background rounded-2xl shadow-2xl overflow-hidden">
-              {/* Header image */}
-              <div className="relative h-32 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=200&fit=crop" alt="food" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
+              {/* Header */}
+              <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-accent">
                 <button onClick={() => setLoginOpen(false)} className="absolute top-3 right-3 p-1.5 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
-                <div className="absolute bottom-3 left-4">
-                  <h3 className="font-display text-xl font-bold text-white">🍜 Kaushi Restaurant</h3>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={kaushiLogo} alt="Kaushi Restaurant" className="h-16 w-16 rounded-full object-cover shadow-lg" />
+                    <h3 className="font-display text-xl font-bold text-white">Kaushi Restaurant</h3>
+                  </div>
                 </div>
               </div>
 

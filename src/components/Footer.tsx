@@ -1,11 +1,15 @@
 import { Phone, MapPin, Clock } from 'lucide-react';
+import kaushiLogo from '@/assets/kaushi-logo.png';
 
 const Footer = () => (
   <footer className="bg-foreground text-background py-12">
     <div className="container mx-auto px-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div>
-          <h3 className="font-display text-xl font-bold mb-3">🍜 Kaushi Restaurant</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <img src={kaushiLogo} alt="Kaushi Restaurant" className="h-10 w-10 rounded-full object-cover" />
+            <h3 className="font-display text-xl font-bold">Kaushi Restaurant</h3>
+          </div>
           <p className="font-body text-sm opacity-80">Authentic Nepali cuisine crafted with love and tradition. Serving the best flavors of Nepal since 2020.</p>
         </div>
         <div>
