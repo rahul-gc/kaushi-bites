@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const bcrypt = require('bcrypt');
 
 class Category {
   static async create(categoryData) {
@@ -231,6 +232,10 @@ class User {
     
     if (error) throw error;
     return count;
+  }
+
+  static async comparePassword(plainPassword, hashedPassword) {
+    return await bcrypt.compare(plainPassword, hashedPassword);
   }
 }
 
